@@ -10,8 +10,9 @@ services:
       - PORT=8000
       - NODE_ENV=production
       - AUTH_MODE=${AUTH_MODE:-local}
-      # Keep disabled by default; only enable when a trusted proxy sanitizes forwarded headers.
-      - TRUST_PROXY=true
+      - FRONTEND_URL=${FRONTEND_URL}
+      # Coolify terminates TLS in front of the app and forwards proxy headers.
+      - TRUST_PROXY=1
       # Optional for single-instance deployments:
       # if unset, backend auto-generates and persists one in the volume.
       # Recommended to set explicitly for portability and multi-instance setups.
