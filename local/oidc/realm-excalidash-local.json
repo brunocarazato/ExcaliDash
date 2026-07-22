@@ -2,7 +2,7 @@
   "realm": "excalidash",
   "enabled": true,
   "displayName": "ExcaliDash (Local Multi Stack)",
-  "registrationAllowed": false,
+  "registrationAllowed": true,
   "resetPasswordAllowed": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
