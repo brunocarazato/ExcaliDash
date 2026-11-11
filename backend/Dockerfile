@@ -42,6 +42,9 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
+# Copy operational scripts (admin:recover, oidc:doctor, ...) so they are available at runtime
+COPY scripts ./scripts
+
 # Install production dependencies only
 RUN apk add --no-cache --virtual .build-deps python3 make g++ && \
     npm ci --omit=dev && \
