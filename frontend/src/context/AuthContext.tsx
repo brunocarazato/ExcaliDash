@@ -10,6 +10,11 @@ import {
   authRegister,
   isAxiosError,
 } from '../api';
+import {
+  clearStoredUser,
+  readStoredUser,
+  writeStoredUser,
+} from '../utils/authStorage';
 
 interface User {
   id: string;
@@ -33,8 +38,8 @@ interface AuthContextType {
   bootstrapRequired: boolean;
   authOnboardingRequired: boolean;
   authOnboardingMode: 'migration' | 'fresh' | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, setupCode?: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
+  register: (email: string, password: string, name: string, setupCode?: string) => Promise<User>;
   logout: () => void;
   retryAuthStatus: () => Promise<void>;
   isAuthenticated: boolean;
@@ -42,8 +47,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const USER_KEY = 'excalidash-user';
 const AUTH_ENABLED_CACHE_KEY = "excalidash-auth-enabled";
+
+const isAuthUser = (value: unknown): value is User =>
+  typeof value === "object" &&
+  value !== null &&
+  !Array.isArray(value) &&
+  typeof (value as { id?: unknown }).id === "string";
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -94,7 +104,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         );
 
         if (!enabled) {
-          localStorage.removeItem(USER_KEY);
+          clearStoredUser();
           setUser(null);
           return;
         }
@@ -111,7 +121,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setBootstrapRequired(false);
           setAuthOnboardingRequired(false);
           setAuthOnboardingMode(null);
-          localStorage.removeItem(USER_KEY);
+          clearStoredUser();
           setUser(null);
           return;
         }
@@ -127,7 +137,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setBootstrapRequired(false);
         setAuthOnboardingRequired(false);
         setAuthOnboardingMode(null);
-        localStorage.removeItem(USER_KEY);
+        clearStoredUser();
         setUser(null);
         return;
       }
@@ -136,25 +146,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Loading a stale localStorage user causes "logged-in" UI while the server returns 401s,
       // which in turn triggers noisy refresh attempts and failing library saves.
       if (!isShareFlow) {
-        const storedUser = localStorage.getItem(USER_KEY);
-        if (storedUser) {
-          try {
-            const userData = JSON.parse(storedUser);
-            setUser(userData);
-          } catch {
-            localStorage.removeItem(USER_KEY);
-            setUser(null);
-          }
+        const storedUser = readStoredUser<User>();
+        if (isAuthUser(storedUser)) {
+          setUser(storedUser);
+        } else if (storedUser) {
+          clearStoredUser();
         }
       }
 
       try {
         const response = await authMe();
         setUser(response.user);
-        localStorage.setItem(USER_KEY, JSON.stringify(response.user));
+        writeStoredUser(response.user);
       } catch {
         if (isShareFlow) {
-          localStorage.removeItem(USER_KEY);
+          clearStoredUser();
           setUser(null);
           return;
         }
@@ -162,9 +168,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           await authRefresh();
           const userResponse = await authMe();
           setUser(userResponse.user);
-          localStorage.setItem(USER_KEY, JSON.stringify(userResponse.user));
+          writeStoredUser(userResponse.user);
         } catch {
-          localStorage.removeItem(USER_KEY);
+          clearStoredUser();
           setUser(null);
         }
       }
@@ -173,7 +179,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setAuthStatusError(
         "Unable to initialize authentication state. Check backend/API connectivity and refresh."
       );
-      localStorage.removeItem(USER_KEY);
+      clearStoredUser();
       setUser(null);
     } finally {
       setLoading(false);
@@ -184,20 +190,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loadUser();
   }, [loadUser]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User> => {
     try {
       if (authEnabled === false) {
         throw new Error("Authentication is disabled");
       }
       const response = await authLogin(email, password);
+      const userData = response?.user;
 
-      const { user: userData } = response;
+      if (!isAuthUser(userData)) {
+        throw new Error(
+          "Login succeeded but the server response was invalid. Check that the frontend and backend are running compatible versions.",
+        );
+      }
 
-      localStorage.setItem(USER_KEY, JSON.stringify(userData));
+      writeStoredUser(userData);
 
       setAuthStatusError(null);
       setAuthEnabled(true);
       setUser(userData);
+      return userData;
     } catch (error: unknown) {
       if (isAxiosError(error)) {
         const message =
@@ -213,20 +225,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const register = async (email: string, password: string, name: string, setupCode?: string) => {
+  const register = async (
+    email: string,
+    password: string,
+    name: string,
+    setupCode?: string,
+  ): Promise<User> => {
     try {
       if (authEnabled === false) {
         throw new Error("Authentication is disabled");
       }
       const response = await authRegister(email, password, name, setupCode);
+      const userData = response?.user;
 
-      const { user: userData } = response;
+      if (!isAuthUser(userData)) {
+        throw new Error(
+          "Registration succeeded but the server response was invalid. Check that the frontend and backend are running compatible versions.",
+        );
+      }
 
-      localStorage.setItem(USER_KEY, JSON.stringify(userData));
+      writeStoredUser(userData);
 
       setAuthStatusError(null);
       setAuthEnabled(true);
       setUser(userData);
+      return userData;
     } catch (error: unknown) {
       if (isAxiosError(error)) {
         const message =
@@ -244,7 +267,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = () => {
     void authLogout().catch(() => undefined);
-    localStorage.removeItem(USER_KEY);
+    clearStoredUser();
     setUser(null);
     setTimeout(() => {
       navigate('/login');

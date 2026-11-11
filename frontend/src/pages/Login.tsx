@@ -3,7 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Logo } from '../components/Logo';
 import * as api from '../api';
-import { USER_KEY } from '../utils/impersonation';
+import { writeStoredUser } from '../utils/authStorage';
 import { getPasswordPolicy, validatePassword } from '../utils/passwordPolicy';
 import { PasswordRequirements } from '../components/PasswordRequirements';
 import { AuthStatusErrorPanel } from '../components/AuthStatusErrorPanel';
@@ -94,10 +94,8 @@ export const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
-      const stored = localStorage.getItem(USER_KEY);
-      const storedUser = stored ? (JSON.parse(stored) as { mustResetPassword?: boolean } | null) : null;
-      if (storedUser?.mustResetPassword) {
+      const userData = await login(email, password);
+      if (userData.mustResetPassword) {
         setPassword('');
         return;
       }
@@ -134,7 +132,7 @@ export const Login: React.FC = () => {
         user: { id: string; email: string; name: string; role?: string; mustResetPassword?: boolean };
       }>('/auth/must-reset-password', { newPassword });
 
-      localStorage.setItem(USER_KEY, JSON.stringify(response.data.user));
+      writeStoredUser(response.data.user);
 
       window.location.href = '/';
     } catch (err: unknown) {

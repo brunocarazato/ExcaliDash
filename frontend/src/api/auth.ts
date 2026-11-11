@@ -1,8 +1,8 @@
 import { cachePasswordPolicy, type PasswordPolicyResponse } from "../utils/passwordPolicy";
+import { clearStoredUser } from "../utils/authStorage";
 import { API_URL, api, axios } from "./client";
 import type { DrawingSortField, SortDirection } from "./drawings";
 
-const USER_KEY = "excalidash-user";
 const AUTH_ENABLED_CACHE_KEY = "excalidash-auth-enabled";
 const AUTH_STATUS_TTL_MS = 5000;
 
@@ -213,7 +213,7 @@ export const authPasswordResetConfirm = async (
 };
 
 const clearStoredAuth = () => {
-  localStorage.removeItem(USER_KEY);
+  clearStoredUser();
 };
 
 const ensureCsrfToken = async (): Promise<void> => {

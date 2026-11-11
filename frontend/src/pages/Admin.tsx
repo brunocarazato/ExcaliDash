@@ -19,8 +19,8 @@ import {
   IMPERSONATION_KEY,
   type ImpersonationState,
   readImpersonationState,
-  USER_KEY,
 } from "../utils/impersonation";
+import { readStoredUser, writeStoredUser } from "../utils/authStorage";
 export const Admin: React.FC = () => {
   const navigate = useNavigate();
   const { user: authUser, authEnabled } = useAuth();
@@ -209,7 +209,7 @@ export const Admin: React.FC = () => {
       setError("Stop the current impersonation before starting a new one.");
       return;
     }
-    const originalUser = localStorage.getItem(USER_KEY);
+    const originalUser = readStoredUser();
     if (!originalUser) {
       setError("Missing current session user state.");
       return;
@@ -219,7 +219,7 @@ export const Admin: React.FC = () => {
         user: { id: string; email: string; name: string };
       }>("/auth/impersonate", { userId: target.id });
       const state: ImpersonationState = {
-        original: { user: JSON.parse(originalUser) },
+        original: { user: originalUser },
         impersonator: {
           id: authUser?.id || "unknown",
           email: authUser?.email || "unknown",
@@ -233,7 +233,7 @@ export const Admin: React.FC = () => {
         startedAt: new Date().toISOString(),
       };
       localStorage.setItem(IMPERSONATION_KEY, JSON.stringify(state));
-      localStorage.setItem(USER_KEY, JSON.stringify(response.data.user));
+      writeStoredUser(response.data.user);
       window.location.href = "/";
     } catch (err: unknown) {
       let message = "Failed to impersonate user";

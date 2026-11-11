@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import * as api from '../api';
 import type { Collection } from '../types';
 import { User, Save, X } from 'lucide-react';
-import { USER_KEY } from '../utils/impersonation';
+import { writeStoredUser } from '../utils/authStorage';
 import { displayFontFamily } from "../utils/displayFont";
 import { ApiKeysCard } from "./profile/ApiKeysCard";
 import { PasswordCard } from "./profile/PasswordCard";
@@ -92,7 +92,7 @@ export const Profile: React.FC = () => {
             const response = await api.api.put<{ user: { id: string; email: string; name: string; createdAt: string; updatedAt: string } }>('/auth/profile', { name: name.trim() });
             setSuccess('Name updated successfully');
             if (response.data?.user) {
-                localStorage.setItem('excalidash-user', JSON.stringify(response.data.user));
+                writeStoredUser(response.data.user);
                 setTimeout(() => window.location.reload(), 500);
             }
         } catch (err: unknown) {
@@ -138,7 +138,7 @@ export const Profile: React.FC = () => {
                 currentPassword: emailCurrentPassword,
             });
 
-            localStorage.setItem(USER_KEY, JSON.stringify(response.data.user));
+            writeStoredUser(response.data?.user);
 
             setSuccess('Email updated successfully');
             setShowEmailForm(false);

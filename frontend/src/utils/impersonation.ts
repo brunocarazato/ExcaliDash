@@ -1,5 +1,8 @@
-export const USER_KEY = 'excalidash-user';
-export const IMPERSONATION_KEY = 'excalidash-impersonation';
+import { writeStoredUser } from "./authStorage";
+
+export { USER_KEY } from "./authStorage";
+
+export const IMPERSONATION_KEY = "excalidash-impersonation";
 
 export type ImpersonationState = {
   original: {
@@ -19,7 +22,7 @@ export type ImpersonationState = {
 };
 
 export const readImpersonationState = (): ImpersonationState | null => {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(IMPERSONATION_KEY);
     if (!raw) return null;
@@ -34,7 +37,7 @@ export const readImpersonationState = (): ImpersonationState | null => {
 export const stopImpersonation = (): boolean => {
   const state = readImpersonationState();
   if (!state) return false;
-  localStorage.setItem(USER_KEY, JSON.stringify(state.original.user));
+  writeStoredUser(state.original.user);
   localStorage.removeItem(IMPERSONATION_KEY);
   return true;
 };

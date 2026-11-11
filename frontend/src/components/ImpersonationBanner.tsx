@@ -4,11 +4,11 @@ import { api, isAxiosError } from '../api';
 import { useAuth } from '../context/AuthContext';
 import {
   IMPERSONATION_KEY,
-  USER_KEY,
   readImpersonationState,
   stopImpersonation as restoreImpersonation,
   type ImpersonationState,
 } from '../utils/impersonation';
+import { writeStoredUser } from '../utils/authStorage';
 
 type ImpersonationTarget = {
   id: string;
@@ -135,7 +135,7 @@ export const ImpersonationBanner: React.FC = () => {
       const response = await api.post<{ user?: { id: string; email: string; name: string } }>('/auth/stop-impersonation');
       restoreImpersonation();
       if (response.data?.user) {
-        localStorage.setItem(USER_KEY, JSON.stringify(response.data.user));
+        writeStoredUser(response.data.user);
       }
       window.location.reload();
     } catch (err: unknown) {
@@ -176,7 +176,7 @@ export const ImpersonationBanner: React.FC = () => {
       };
 
       localStorage.setItem(IMPERSONATION_KEY, JSON.stringify(nextState));
-      localStorage.setItem(USER_KEY, JSON.stringify(response.data.user));
+      writeStoredUser(response.data.user);
       window.location.reload();
     } catch (err: unknown) {
       let message = 'Failed to switch impersonation user';
