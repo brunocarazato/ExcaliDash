@@ -13,6 +13,11 @@ services:
       - FRONTEND_URL=${FRONTEND_URL}
       # Coolify terminates TLS in front of the app and forwards proxy headers.
       - TRUST_PROXY=1
+      # Coolify/Traefik already redirects HTTP->HTTPS at the edge. Keep the backend
+      # redirect disabled: internal frontend->backend requests arrive over HTTP, and
+      # redirecting them drops the /api prefix (a 302 also turns POST /api/auth/login
+      # into GET, landing on the SPA instead of the API).
+      - ENFORCE_HTTPS_REDIRECT=${ENFORCE_HTTPS_REDIRECT:-false}
       # Optional for single-instance deployments:
       # if unset, backend auto-generates and persists one in the volume.
       # Recommended to set explicitly for portability and multi-instance setups.
