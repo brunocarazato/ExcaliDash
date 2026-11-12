@@ -14,6 +14,7 @@ export const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { authEnabled, user, authMode } = useAuth();
+  const canViewUpdates = authEnabled === false || user?.role === "ADMIN";
   const [legacyDbImportConfirmation, setLegacyDbImportConfirmation] = useState<{
     isOpen: boolean;
     file: File | null;
@@ -130,8 +131,11 @@ export const Settings: React.FC = () => {
     }
   };
   useEffect(() => {
-    void checkForUpdates(updateChannel);
-  }, []);
+    if (canViewUpdates) {
+      void checkForUpdates(updateChannel);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canViewUpdates]);
   const setAuthEnabled = async (enabled: boolean) => {
     setAuthToggleLoading(true);
     setAuthToggleError(null);
@@ -332,6 +336,7 @@ export const Settings: React.FC = () => {
           void checkForUpdates(next);
         }}
         onCheckForUpdates={() => void checkForUpdates(updateChannel)}
+        showUpdateCard={canViewUpdates}
       />{" "}
       <AdvancedSettings
         authEnabled={authEnabled}

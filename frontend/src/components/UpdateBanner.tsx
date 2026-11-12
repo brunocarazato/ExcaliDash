@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { BellOff, ExternalLink, RefreshCw, XCircle } from "lucide-react";
 import * as api from "../api";
+import { useAuth } from "../context/AuthContext";
 
 const CHANNEL_KEY = "excalidash-update-channel";
 const DISMISSED_VERSION_KEY = "excalidash-update-ignored-version";
@@ -92,6 +93,8 @@ const writeCachedInfo = (channel: api.UpdateChannel, info: api.UpdateInfo) => {
 };
 
 export const UpdateBanner: React.FC = () => {
+  const { authEnabled, user } = useAuth();
+  const canViewUpdates = authEnabled === false || user?.role === "ADMIN";
   const [channel, setChannel] = useState<api.UpdateChannel>(() => readChannel());
   const [info, setInfo] = useState<api.UpdateInfo | null>(() => readCachedInfo(readChannel()));
   const [loading, setLoading] = useState(false);
@@ -118,11 +121,15 @@ export const UpdateBanner: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!canViewUpdates) {
+      setInfo(null);
+      return;
+    }
     setInfo(readCachedInfo(channel));
     setClosedVersion(safeGetSessionItem(closedVersionStorageKey(channel)));
     void load(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channel]);
+  }, [channel, canViewUpdates]);
 
   useEffect(() => {
     setIgnoredVersion(safeGetItem(DISMISSED_VERSION_KEY));
@@ -133,6 +140,7 @@ export const UpdateBanner: React.FC = () => {
   }, [channel, info?.latestVersion]);
 
   const updateAvailable =
+    canViewUpdates &&
     info?.outboundEnabled &&
     info?.isUpdateAvailable === true &&
     Boolean(info.latestVersion) &&

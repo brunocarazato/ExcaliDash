@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import express from "express";
+import request from "supertest";
 
 type MockFetchResponse = {
   ok: boolean;
@@ -121,5 +123,88 @@ describe("system/update logic", () => {
     const secondCall = fetchMock.mock.calls[1] as any[];
     const secondOpts = secondCall?.[1] as { headers?: Record<string, string> } | undefined;
     expect(secondOpts?.headers?.["If-None-Match"]).toBe("ETAG-1");
+  });
+});
+
+describe("system/update route authorization", () => {
+  const originalOutbound = process.env.UPDATE_CHECK_OUTBOUND;
+  const originalToken = process.env.UPDATE_CHECK_GITHUB_TOKEN;
+  const originalGithubToken = process.env.GITHUB_TOKEN;
+
+  beforeEach(() => {
+    vi.resetModules();
+    process.env.UPDATE_CHECK_OUTBOUND = "true";
+    delete process.env.UPDATE_CHECK_GITHUB_TOKEN;
+    delete process.env.GITHUB_TOKEN;
+  });
+
+  afterEach(() => {
+    process.env.UPDATE_CHECK_OUTBOUND = originalOutbound;
+    process.env.UPDATE_CHECK_GITHUB_TOKEN = originalToken;
+    process.env.GITHUB_TOKEN = originalGithubToken;
+    vi.restoreAllMocks();
+  });
+
+  const buildApp = async (role: string | null) => {
+    const { registerUpdateRoutes } = await import("./update");
+    const app = express();
+    registerUpdateRoutes(app, {
+      asyncHandler: (fn) => (req, res, next) => {
+        void Promise.resolve(fn(req, res, next)).catch(next);
+      },
+      getBackendVersion: () => "1.0.0",
+      requireAuth: (req, _res, next) => {
+        if (role) {
+          req.user = {
+            id: "user-1",
+            email: "user@example.com",
+            name: "User",
+            role,
+          };
+        }
+        next();
+      },
+    });
+    return app;
+  };
+
+  it("returns 403 for non-admin users and skips the GitHub request", async () => {
+    const fetchSpy = vi.fn();
+    (globalThis as any).fetch = fetchSpy;
+
+    const app = await buildApp("USER");
+    const response = await request(app).get("/system/update");
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      error: "Forbidden",
+      message: "Admin access required",
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("returns update info for admins", async () => {
+    (globalThis as any).fetch = vi.fn().mockResolvedValue(
+      makeFetchResponse({
+        status: 200,
+        json: [
+          {
+            tag_name: "v2.0.0",
+            prerelease: false,
+            draft: false,
+            html_url: "https://example.com/release",
+            published_at: "2026-01-01T00:00:00Z",
+          },
+        ],
+        etag: "ETAG-1",
+      })
+    );
+
+    const app = await buildApp("ADMIN");
+    const response = await request(app).get("/system/update").query({ channel: "stable" });
+
+    expect(response.status).toBe(200);
+    expect(response.body.latestVersion).toBe("2.0.0");
+    expect(response.body.isUpdateAvailable).toBe(true);
   });
 });

@@ -18,6 +18,10 @@ vi.mock("./ImpersonationBanner", () => ({
   ImpersonationBanner: () => null,
 }));
 
+vi.mock("./UpdateBanner", () => ({
+  UpdateBanner: () => null,
+}));
+
 import { Layout } from "./Layout";
 
 describe("Layout", () => {

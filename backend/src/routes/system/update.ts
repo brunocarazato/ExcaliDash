@@ -184,7 +184,13 @@ export const __setUpdateTtlForTests = (ttlMs: number): void => {
 export const registerUpdateRoutes = (app: express.Express, deps: SystemRouteDeps) => {
   app.get(
     "/system/update",
+    deps.requireAuth,
     deps.asyncHandler(async (req, res) => {
+      if (!req.user || req.user.role !== "ADMIN") {
+        res.status(403).json({ error: "Forbidden", message: "Admin access required" });
+        return;
+      }
+
       const channel = parseChannel(req.query.channel);
       const currentVersion = deps.getBackendVersion() || null;
 

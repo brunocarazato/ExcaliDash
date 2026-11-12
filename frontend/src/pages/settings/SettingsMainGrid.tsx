@@ -16,6 +16,7 @@ type SettingsMainGridProps = {
   updateError: string | null;
   onUpdateChannelChange: (channel: api.UpdateChannel) => void;
   onCheckForUpdates: () => void;
+  showUpdateCard: boolean;
 };
 
 export const SettingsMainGrid = ({
@@ -32,6 +33,7 @@ export const SettingsMainGrid = ({
   updateError,
   onUpdateChannelChange,
   onCheckForUpdates,
+  showUpdateCard,
 }: SettingsMainGridProps) => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
     <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 p-4 sm:p-6 lg:p-8 bg-white dark:bg-neutral-900 border-2 border-black dark:border-neutral-700 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]">
@@ -163,13 +165,15 @@ export const SettingsMainGrid = ({
         </p>{" "}
       </div>{" "}
     </button>{" "}
-    <UpdateSettingsCard
-      updateChannel={updateChannel}
-      updateInfo={updateInfo}
-      updateLoading={updateLoading}
-      updateError={updateError}
-      onChannelChange={onUpdateChannelChange}
-      onCheckForUpdates={onCheckForUpdates}
-    />{" "}
+    {showUpdateCard ? (
+      <UpdateSettingsCard
+        updateChannel={updateChannel}
+        updateInfo={updateInfo}
+        updateLoading={updateLoading}
+        updateError={updateError}
+        onChannelChange={onUpdateChannelChange}
+        onCheckForUpdates={onCheckForUpdates}
+      />
+    ) : null}{" "}
   </div>
 );
