@@ -8,8 +8,11 @@ services:
       - PORT=8000
       - NODE_ENV=production
       - AUTH_MODE=${AUTH_MODE:-local}
-      # Keep disabled by default; only enable when a trusted proxy sanitizes forwarded headers.
-      - TRUST_PROXY=false
+      # Request path behind Coolify's Traefik:
+      # client -> Traefik -> frontend nginx -> backend (two proxy hops).
+      # Deploying without Traefik (direct access to the frontend container)?
+      # Override with TRUST_PROXY=1.
+      - TRUST_PROXY=${TRUST_PROXY:-2}
       # Optional for single-instance deployments:
       # if unset, backend auto-generates and persists one in the volume.
       # Recommended to set explicitly for portability and multi-instance setups.
@@ -43,7 +46,10 @@ services:
     image: zimengxiong/excalidash-frontend:latest
     container_name: excalidash-frontend
     ports:
-      - "6767:80"
+      # Coolify's Traefik reaches the container over the Docker network. This
+      # host binding is only for local/debug access; loopback avoids bypassing
+      # the TLS edge. Set EXCALIDASH_HTTP_BIND=0.0.0.0 for direct LAN access.
+      - "${EXCALIDASH_HTTP_BIND:-127.0.0.1}:6767:80"
     depends_on:
       - backend
     networks:

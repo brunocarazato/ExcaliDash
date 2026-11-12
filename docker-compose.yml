@@ -12,7 +12,12 @@ services:
       - AUTH_MODE=${AUTH_MODE:-local}
       - FRONTEND_URL=${FRONTEND_URL}
       # Coolify terminates TLS in front of the app and forwards proxy headers.
-      - TRUST_PROXY=1
+      # Request path: client -> Traefik (Coolify) -> frontend nginx -> backend.
+      # That is two proxy hops, so the backend must trust 2 hops to resolve the
+      # real client IP (used for rate limiting, audit logs and CSRF checks).
+      # Deploying without Traefik (direct access to the frontend container)?
+      # Override with TRUST_PROXY=1.
+      - TRUST_PROXY=${TRUST_PROXY:-2}
       # Coolify/Traefik already redirects HTTP->HTTPS at the edge. Keep the backend
       # redirect disabled: internal frontend->backend requests arrive over HTTP, and
       # redirecting them drops the /api prefix (a 302 also turns POST /api/auth/login
@@ -60,7 +65,11 @@ services:
       dockerfile: frontend/Dockerfile
     container_name: excalidash-frontend
     ports:
-      - "6767:80"
+      # Coolify's Traefik reaches the container over the Docker network; this
+      # host binding exists only for local/debug access. Binding to loopback by
+      # default prevents plain-HTTP access that bypasses the Coolify TLS edge.
+      # Set EXCALIDASH_HTTP_BIND=0.0.0.0 only if you really need LAN access.
+      - "${EXCALIDASH_HTTP_BIND:-127.0.0.1}:6767:80"
     environment:
       # Backend URL for nginx proxy (host:port format, no protocol)
       # Override for reverse proxy setups (e.g., excalidash-backend.svc.cluster.local:8000)

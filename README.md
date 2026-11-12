@@ -158,7 +158,9 @@ docker compose -f docker-compose.prod.yml up -d
 
 For single-container deployments, `JWT_SECRET` can be omitted and will be auto-generated and persisted in the backend volume on first start. For portability and most production deployments, set a fixed `JWT_SECRET` explicitly.
 
-By default, the provided Compose files set `TRUST_PROXY=false` for safer setup. Only set `TRUST_PROXY` to a positive hop count (for example, `1`) when requests always pass through a trusted reverse proxy that correctly sets forwarded headers.
+By default, `docker-compose.yml` and `docker-compose.prod.yml` set `TRUST_PROXY=2` for the standard Coolify chain (client → Traefik → frontend nginx → backend). If you deploy without Traefik and only the frontend nginx sits in front of the backend, set `TRUST_PROXY=1`. If the backend is exposed directly, use `TRUST_PROXY=false`. Only use a positive hop count when every hop is trusted and appends `X-Forwarded-For`.
+
+Port `6767` is bound to `127.0.0.1` by default so it cannot be used to bypass the TLS edge. Set `EXCALIDASH_HTTP_BIND=0.0.0.0` only when you intentionally expose the frontend port directly (for example, local LAN testing without a reverse proxy).
 
 </details>
 

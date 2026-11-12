@@ -28,6 +28,9 @@ FROM nginx:alpine
 # Copy nginx config template (will be processed at runtime)
 COPY frontend/nginx.conf.template /etc/nginx/nginx.conf.template
 
+# Shared security headers included by the nginx config
+COPY frontend/security-headers.conf /etc/nginx/security-headers.conf
+
 # Copy entrypoint script
 COPY frontend/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh

@@ -25,6 +25,19 @@ type RegisterSocketHandlersDeps = {
   prisma: PrismaClient;
   authModeService: AuthModeService;
   jwtSecret: string;
+  /** Mirrors the Express `trust proxy` setting so rate limits see the real client IP. */
+  trustProxy?: boolean | number;
+};
+
+const readPositiveIntEnv = (name: string, fallback: number): number => {
+  const parsed = Number(process.env[name]);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const normalizeSocketIp = (value: string | undefined): string => {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) return "unknown";
+  return trimmed.replace(/^::ffff:/i, "");
 };
 
 export const registerSocketHandlers = ({
@@ -32,9 +45,83 @@ export const registerSocketHandlers = ({
   prisma,
   authModeService,
   jwtSecret,
+  trustProxy = false,
 }: RegisterSocketHandlersDeps) => {
   const roomUsers = new Map<string, User[]>();
   const socketPrincipalMap = new Map<string, DrawingPrincipal>();
+
+  // Keep this in sync with the Express proxy configuration. Without it every
+  // socket behind Traefik would share the proxy IP and hit the same limits.
+  const resolveClientIp = (socket: {
+    handshake: { address?: string; headers: Record<string, unknown> };
+  }): string => {
+    if (trustProxy !== false) {
+      const rawHeader = socket.handshake.headers["x-forwarded-for"];
+      const raw = Array.isArray(rawHeader) ? rawHeader.join(",") : rawHeader;
+      if (typeof raw === "string" && raw.trim().length > 0) {
+        const chain = raw
+          .split(",")
+          .map((entry) => entry.trim())
+          .filter(Boolean);
+        if (chain.length > 0) {
+          if (trustProxy === true) return normalizeSocketIp(chain[0]);
+          const hops = typeof trustProxy === "number" && trustProxy > 0 ? trustProxy : 1;
+          const index = chain.length - hops;
+          return normalizeSocketIp(index >= 0 ? chain[index] : chain[0]);
+        }
+      }
+    }
+    return normalizeSocketIp(socket.handshake.address);
+  };
+
+  const HANDSHAKE_WINDOW_MS = 60 * 1000;
+  const HANDSHAKE_MAX_PER_IP = readPositiveIntEnv(
+    "SOCKET_HANDSHAKE_RATE_LIMIT_MAX",
+    60,
+  );
+  const MAX_CONNECTIONS_PER_IP = readPositiveIntEnv(
+    "SOCKET_MAX_CONNECTIONS_PER_IP",
+    100,
+  );
+  const HANDSHAKE_TRACKER_MAX_ENTRIES = 10_000;
+  const handshakeAttempts = new Map<string, number[]>();
+  const activeConnections = new Map<string, number>();
+
+  const allowHandshake = (ip: string): boolean => {
+    const now = Date.now();
+    const recent = (handshakeAttempts.get(ip) ?? []).filter(
+      (timestamp) => now - timestamp < HANDSHAKE_WINDOW_MS,
+    );
+    if (recent.length >= HANDSHAKE_MAX_PER_IP) {
+      handshakeAttempts.set(ip, recent);
+      return false;
+    }
+    recent.push(now);
+    handshakeAttempts.set(ip, recent);
+    if (handshakeAttempts.size > HANDSHAKE_TRACKER_MAX_ENTRIES) {
+      for (const [key, timestamps] of handshakeAttempts) {
+        const last = timestamps[timestamps.length - 1] ?? 0;
+        if (now - last >= HANDSHAKE_WINDOW_MS) handshakeAttempts.delete(key);
+      }
+    }
+    return true;
+  };
+
+  const hasCapacity = (ip: string): boolean =>
+    (activeConnections.get(ip) ?? 0) < MAX_CONNECTIONS_PER_IP;
+
+  const trackConnection = (ip: string): void => {
+    activeConnections.set(ip, (activeConnections.get(ip) ?? 0) + 1);
+  };
+
+  const untrackConnection = (ip: string): void => {
+    const current = activeConnections.get(ip) ?? 0;
+    if (current <= 1) {
+      activeConnections.delete(ip);
+      return;
+    }
+    activeConnections.set(ip, current - 1);
+  };
 
   const toPresenceName = (value: unknown): string => {
     if (typeof value !== "string") return "User";
@@ -94,6 +181,14 @@ export const registerSocketHandlers = ({
 
   io.use(async (socket, next) => {
     try {
+      const clientIp = resolveClientIp(socket);
+      socket.data.clientIp = clientIp;
+      if (!hasCapacity(clientIp)) {
+        return next(new Error("Too many concurrent connections"));
+      }
+      if (!allowHandshake(clientIp)) {
+        return next(new Error("Too many connection attempts"));
+      }
       const tokenFromAuth = socket.handshake.auth?.token as string | undefined;
       const tokenFromCookie = (() => {
         const cookies = parseCookieHeader(socket.handshake.headers.cookie);
@@ -120,6 +215,9 @@ export const registerSocketHandlers = ({
   });
 
   io.on("connection", (socket) => {
+    const clientIp =
+      typeof socket.data?.clientIp === "string" ? socket.data.clientIp : "unknown";
+    trackConnection(clientIp);
     const principal = socketPrincipalMap.get(socket.id) || null;
     const authorizedDrawingAccess = new Map<
       string,
@@ -280,6 +378,7 @@ export const registerSocketHandlers = ({
 
     socket.on("disconnect", () => {
       socketPrincipalMap.delete(socket.id);
+      untrackConnection(clientIp);
       roomUsers.forEach((users, roomId) => {
         const index = users.findIndex((u) => u.socketId === socket.id);
         if (index !== -1) {

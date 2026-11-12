@@ -20,7 +20,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@excalidraw/excalidraw": "^0.18.1",
     "@types/lodash": "^4.17.20",
-    "axios": "^1.16.1",
+    "axios": "^1.21.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "jszip": "^3.10.1",
@@ -28,8 +28,8 @@
     "lucide-react": "^0.554.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.17.0",
-    "socket.io-client": "^4.8.1",
+    "react-router-dom": "^7.18.5",
+    "socket.io-client": "^4.8.4",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0"
   },
@@ -59,12 +59,15 @@
   },
   "overrides": {
     "@excalidraw/excalidraw": {
-      "nanoid": "3.3.12"
+      "nanoid": "3.3.20"
     },
     "@excalidraw/mermaid-to-excalidraw": {
-      "nanoid": "5.1.11",
-      "@mermaid-js/parser": "1.1.1"
+      "nanoid": "5.1.16",
+      "@mermaid-js/parser": "1.2.1",
+      "mermaid": "11.17.2"
     },
-    "lodash-es": "4.18.1"
+    "dompurify": "^3.4.17",
+    "lodash-es": "4.18.1",
+    "socket.io-parser": "^4.2.7"
   }
 }
