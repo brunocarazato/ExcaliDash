@@ -6,6 +6,7 @@ import { registerCoreRoutes } from "./coreRoutes";
 const buildApp = (options?: {
   authMode?: "local" | "hybrid" | "oidc_enforced";
   registrationEnabled?: boolean;
+  registrationEmailDomains?: string[];
   oidcJitProvisioningEnabled?: boolean | null;
 }) => {
   const router = express.Router();
@@ -44,6 +45,7 @@ const buildApp = (options?: {
     config: {
       authMode: options?.authMode ?? "oidc_enforced",
       jwtSecret: "test-secret",
+      registrationEmailDomains: options?.registrationEmailDomains ?? ["digix.com.br"],
       jwtAccessExpiresIn: "15m",
       enableRefreshTokenRotation: false,
       enableAuditLogging: false,
@@ -69,6 +71,7 @@ const buildApp = (options?: {
   });
 
   const app = express();
+  app.use(express.json());
   app.use(router);
   return { app };
 };
@@ -138,6 +141,7 @@ describe("/auth/status registration policy", () => {
       config: {
         authMode: "local",
         jwtSecret: "test-secret",
+        registrationEmailDomains: ["digix.com.br"],
         jwtAccessExpiresIn: "15m",
         enableRefreshTokenRotation: false,
         enableAuditLogging: false,
@@ -171,5 +175,28 @@ describe("/auth/status registration policy", () => {
     expect(response.body?.authEnabled).toBe(false);
     expect(response.body?.authenticated).toBe(false);
     expect(response.body?.user).toBeNull();
+  });
+});
+
+describe("POST /auth/register email domain policy", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("rejects public registration from domains outside the allowlist", async () => {
+    const { app } = buildApp({
+      authMode: "local",
+      registrationEnabled: true,
+      registrationEmailDomains: ["digix.com.br"],
+    });
+
+    const response = await request(app).post("/register").send({
+      email: "someone@gmail.com",
+      password: "Abcdefgh1234!",
+      name: "Someone",
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body?.message).toContain("@digix.com.br");
   });
 });

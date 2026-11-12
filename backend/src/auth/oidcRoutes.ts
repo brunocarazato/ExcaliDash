@@ -33,6 +33,7 @@ export type RegisterOidcRoutesDeps = {
   config: {
     authMode: "local" | "hybrid" | "oidc_enforced";
     jwtSecret: string;
+    registrationEmailDomains: string[];
     enableRefreshTokenRotation: boolean;
     enableAuditLogging: boolean;
     oidc: {

@@ -37,6 +37,7 @@ const baseAuthState = {
   register: vi.fn(),
   authEnabled: true,
   registrationEnabled: true,
+  registrationEmailDomains: [],
   authStatusError: null,
   retryAuthStatus: vi.fn(),
   oidcEnabled: false,

@@ -29,6 +29,8 @@ services:
       - JWT_SECRET=test-secret-pg-min-32-chars-long
       - CSRF_SECRET=test-secret-pg
       - AUTH_MODE=local
+      # Local test stack: allow any email domain.
+      - REGISTRATION_EMAIL_DOMAINS=*
     ports:
       - "8000:8000"
     depends_on:

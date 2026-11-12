@@ -30,6 +30,7 @@ interface AuthContextType {
   loading: boolean;
   authEnabled: boolean | null;
   registrationEnabled: boolean;
+  registrationEmailDomains: string[];
   authStatusError: string | null;
   authMode: 'local' | 'hybrid' | 'oidc_enforced';
   oidcEnabled: boolean;
@@ -60,6 +61,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const [authEnabled, setAuthEnabled] = useState<boolean | null>(null);
   const [registrationEnabled, setRegistrationEnabled] = useState(false);
+  const [registrationEmailDomains, setRegistrationEmailDomains] = useState<string[]>([]);
   const [authStatusError, setAuthStatusError] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<'local' | 'hybrid' | 'oidc_enforced'>('local');
   const [oidcEnabled, setOidcEnabled] = useState(false);
@@ -87,6 +89,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setAuthEnabled(enabled);
         localStorage.setItem(AUTH_ENABLED_CACHE_KEY, String(enabled));
         setRegistrationEnabled(Boolean(statusResponse?.registrationEnabled));
+        setRegistrationEmailDomains(
+          Array.isArray(statusResponse?.registrationEmailDomains)
+            ? statusResponse.registrationEmailDomains.filter(
+                (domain): domain is string => typeof domain === "string",
+              )
+            : [],
+        );
         const nextAuthMode =
           statusResponse?.authMode === 'hybrid' || statusResponse?.authMode === 'oidc_enforced'
             ? statusResponse.authMode
@@ -114,6 +123,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setAuthStatusError(null);
           setAuthEnabled(false);
           setRegistrationEnabled(false);
+          setRegistrationEmailDomains([]);
           setAuthMode('local');
           setOidcEnabled(false);
           setOidcEnforced(false);
@@ -130,6 +140,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         );
         setAuthEnabled(null);
         setRegistrationEnabled(false);
+        setRegistrationEmailDomains([]);
         setAuthMode('local');
         setOidcEnabled(false);
         setOidcEnforced(false);
@@ -281,6 +292,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loading,
         authEnabled,
         registrationEnabled,
+        registrationEmailDomains,
         authStatusError,
         authMode,
         oidcEnabled,

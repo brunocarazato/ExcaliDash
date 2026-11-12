@@ -17,6 +17,8 @@ x-backend-common: &backend-common
     PORT: "8000"
     NODE_ENV: production
     TRUST_PROXY: "false"
+    # Local lab fixtures use @example.com users; keep registration unrestricted.
+    REGISTRATION_EMAIL_DOMAINS: "*"
     UPDATE_CHECK_OUTBOUND: "false"
     JWT_SECRET: lab-jwt-secret-32-chars-minimum-value
     CSRF_SECRET: lab-csrf-secret-32-chars-minimum-value

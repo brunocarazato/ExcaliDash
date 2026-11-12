@@ -10,6 +10,7 @@ import {
   resolvePasswordPolicyConfig,
   validatePasswordAgainstPolicy,
 } from "./config/passwordPolicy";
+import { parseAllowedEmailDomains } from "./auth/emailDomainPolicy";
 import { validateProductionConfig } from "./config/production";
 
 export { buildPasswordPolicyMessage, validatePasswordAgainstPolicy };
@@ -38,6 +39,7 @@ interface Config {
   databaseUrl?: string;
   frontendUrl?: string;
   authMode: AuthMode;
+  registrationEmailDomains: string[];
   jwtSecret: string;
   jwtAccessExpiresIn: string;
   jwtRefreshExpiresIn: string;
@@ -353,6 +355,9 @@ export const config: Config = {
   databaseUrl: process.env.DATABASE_URL,
   frontendUrl: parseFrontendUrl(process.env.FRONTEND_URL),
   authMode: resolvedAuthMode,
+  registrationEmailDomains: parseAllowedEmailDomains(
+    process.env.REGISTRATION_EMAIL_DOMAINS,
+  ),
   jwtSecret: resolveJwtSecret(getOptionalEnv("NODE_ENV", "development")),
   jwtAccessExpiresIn: getOptionalEnv("JWT_ACCESS_EXPIRES_IN", "15m"),
   jwtRefreshExpiresIn: getOptionalEnv("JWT_REFRESH_EXPIRES_IN", "7d"),

@@ -22,6 +22,8 @@ services:
       - PORT=8000
       - NODE_ENV=production
       - AUTH_MODE=local
+      # Local Keycloak fixtures use @example.com users; keep registration unrestricted.
+      - REGISTRATION_EMAIL_DOMAINS=*
       - FRONTEND_URL=http://localhost:1001
       - TRUST_PROXY=false
       - JWT_SECRET=local-basic-jwt-secret-32-chars-min-0001
@@ -55,6 +57,8 @@ services:
       - PORT=8000
       - NODE_ENV=development
       - AUTH_MODE=oidc_enforced
+      # Local Keycloak fixtures use @example.com users; keep registration unrestricted.
+      - REGISTRATION_EMAIL_DOMAINS=*
       - FRONTEND_URL=http://localhost:1002
       - TRUST_PROXY=false
       - JWT_SECRET=local-oidc-jwt-secret-32-chars-min-0002
@@ -97,6 +101,8 @@ services:
       - PORT=8000
       - NODE_ENV=development
       - AUTH_MODE=hybrid
+      # Local Keycloak fixtures use @example.com users; keep registration unrestricted.
+      - REGISTRATION_EMAIL_DOMAINS=*
       - FRONTEND_URL=http://localhost:1003
       - TRUST_PROXY=false
       - JWT_SECRET=local-hybrid-jwt-secret-32-chars-min-0003

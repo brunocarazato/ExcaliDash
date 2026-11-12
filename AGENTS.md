@@ -216,6 +216,7 @@ Backend base variables:
 - `FRONTEND_URL` (comma-separated allowed origins)
 - `TRUST_PROXY` (`true`, `false`, or positive hop count)
 - `AUTH_MODE` (`local`, `hybrid`, `oidc_enforced`)
+- `REGISTRATION_EMAIL_DOMAINS` (comma-separated email domains allowed for public registration, profile email changes, and OIDC JIT provisioning; unset/`*` allows any domain; set e.g. `digix.com.br` to restrict)
 - `JWT_SECRET` (required when running backend with `NODE_ENV=production`; Docker entrypoint can auto-generate + persist for single-instance setups)
 - `CSRF_SECRET` (recommended for stable CSRF across restarts; Docker entrypoint can auto-generate + persist for single-instance setups)
 - `JWT_ACCESS_EXPIRES_IN` (default `15m`)

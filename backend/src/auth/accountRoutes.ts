@@ -18,6 +18,7 @@ export type RegisterAccountRoutesDeps = {
     enablePasswordReset: boolean;
     enableAuditLogging: boolean;
     enableRefreshTokenRotation: boolean;
+    registrationEmailDomains: string[];
     nodeEnv: string;
     frontendUrl?: string;
   };

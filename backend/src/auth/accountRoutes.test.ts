@@ -50,6 +50,7 @@ const buildApp = (options?: { impersonatorId?: string }) => {
       enablePasswordReset: true,
       enableAuditLogging: false,
       enableRefreshTokenRotation: false,
+      registrationEmailDomains: ["digix.com.br"],
       nodeEnv: "test",
       frontendUrl: "http://localhost:6767",
     },
@@ -220,5 +221,24 @@ describe("accountRoutes local-password safeguards", () => {
     expect(response.status).toBe(400);
     expect(response.body?.message).toContain("valid API key scope");
     expect(prisma.apiKey.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("accountRoutes email domain policy", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("rejects email changes to domains outside the allowlist", async () => {
+    const { app, prisma } = buildApp();
+
+    const response = await request(app).put("/email").send({
+      email: "user@gmail.com",
+      currentPassword: "CurrentPass123!",
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body?.message).toContain("@digix.com.br");
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 });

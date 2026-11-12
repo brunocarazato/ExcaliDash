@@ -10,6 +10,9 @@ services:
       - PORT=8000
       - NODE_ENV=production
       - AUTH_MODE=${AUTH_MODE:-local}
+      # Restrict account creation to company email domains (comma-separated).
+      # Defaults to "*" (any domain); set e.g. digix.com.br to restrict.
+      - REGISTRATION_EMAIL_DOMAINS=${REGISTRATION_EMAIL_DOMAINS:-*}
       - FRONTEND_URL=${FRONTEND_URL}
       # Coolify terminates TLS in front of the app and forwards proxy headers.
       # Request path: client -> Traefik (Coolify) -> frontend nginx -> backend.

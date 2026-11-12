@@ -5,6 +5,10 @@ import { useAuth } from '../context/AuthContext';
 import { Logo } from '../components/Logo';
 import * as api from '../api';
 import { getPasswordPolicy, validatePassword } from '../utils/passwordPolicy';
+import {
+  formatAllowedEmailDomains,
+  isEmailDomainAllowed,
+} from '../utils/emailDomain';
 import { PasswordRequirements } from '../components/PasswordRequirements';
 import { AuthStatusErrorPanel } from '../components/AuthStatusErrorPanel';
 
@@ -20,6 +24,7 @@ export const Register: React.FC = () => {
     register,
     authEnabled,
     registrationEnabled,
+    registrationEmailDomains,
     authStatusError,
     retryAuthStatus,
     oidcEnabled,
@@ -104,6 +109,16 @@ export const Register: React.FC = () => {
     const passwordError = validatePassword(password, passwordPolicy);
     if (passwordError) {
       setError(passwordError);
+      return;
+    }
+    if (
+      !bootstrapRequired &&
+      registrationEmailDomains.length > 0 &&
+      !isEmailDomainAllowed(email, registrationEmailDomains)
+    ) {
+      setError(
+        `Use an email address from ${formatAllowedEmailDomains(registrationEmailDomains)}.`,
+      );
       return;
     }
     if (bootstrapRequired && setupCode.trim().length === 0) {
@@ -238,6 +253,11 @@ export const Register: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
+              {!bootstrapRequired && registrationEmailDomains.length > 0 && (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Use your company email ({formatAllowedEmailDomains(registrationEmailDomains)}).
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="password" className="sr-only">

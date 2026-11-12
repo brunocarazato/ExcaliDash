@@ -29,6 +29,7 @@ export interface AuthStatusResponse {
   authEnabled?: boolean;
   enabled?: boolean;
   registrationEnabled?: boolean;
+  registrationEmailDomains?: string[];
   authMode?: "local" | "hybrid" | "oidc_enforced";
   oidcEnabled?: boolean;
   oidcEnforced?: boolean;

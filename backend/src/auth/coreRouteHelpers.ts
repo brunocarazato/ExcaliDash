@@ -80,6 +80,7 @@ export const buildAuthStatusPayload = ({
   oidcJitProvisioningEnabled,
   onboarding,
   bootstrapRequired,
+  registrationEmailDomains,
   passwordPolicy,
   user,
 }: {
@@ -99,6 +100,7 @@ export const buildAuthStatusPayload = ({
     mode: "migration" | "fresh";
   };
   bootstrapRequired: boolean;
+  registrationEmailDomains: string[];
   passwordPolicy: PasswordPolicyPayload;
   user: AuthUser;
 }) => {
@@ -118,6 +120,7 @@ export const buildAuthStatusPayload = ({
     registrationEnabled: effectiveAuthEnabled
       ? getEffectiveRegistrationEnabled(authMode, systemConfig.registrationEnabled)
       : false,
+    registrationEmailDomains,
     bootstrapRequired: effectiveAuthEnabled ? bootstrapRequired : false,
     authOnboardingRequired: onboardingRequired,
     authOnboardingMode: onboardingMode,

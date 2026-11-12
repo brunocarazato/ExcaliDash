@@ -3,6 +3,7 @@ import { Prisma } from "../generated/client";
 import { logAuditEvent } from "../utils/audit";
 import type { RegisterOidcRoutesDeps } from "./oidcRoutes";
 import { hashTokenForStorage } from "./tokenSecurity";
+import { isEmailDomainAllowed } from "./emailDomainPolicy";
 import { canUseIdTokenSigningAlg, decodeFlowPayload, normalizeClaimGroups, normalizeEmail, OIDC_FLOW_COOKIE_NAME, OIDC_PROVIDER_KEY, parseJwtAlgMismatchError, readBooleanClaim, readClaimByPath, readStringClaim } from "./oidcRouteHelpers";
 
 type OidcUser = {
@@ -217,6 +218,9 @@ export const registerOidcCallbackRoute = (deps: RegisterOidcCallbackRouteDeps) =
         if (existingUser) {
           resolvedUser = existingUser;
         } else {
+          if (!isEmailDomainAllowed(normalizedEmail, config.registrationEmailDomains)) {
+            throw new Error("OIDC email domain not allowed");
+          }
           if (!jitProvisioningEnabled) {
             throw new Error("OIDC provisioning disabled");
           }
@@ -335,6 +339,17 @@ export const registerOidcCallbackRoute = (deps: RegisterOidcCallbackRouteDeps) =
       }
       return res.redirect(flow.returnTo || "/");
     } catch (error) {
+      if (
+        error instanceof Error &&
+        /OIDC email domain not allowed/i.test(error.message)
+      ) {
+        return redirectToLoginWithError(
+          req,
+          res,
+          "email_domain_not_allowed",
+          flow.returnTo,
+        );
+      }
       if (
         error instanceof Error &&
         /OIDC provisioning disabled/i.test(error.message)

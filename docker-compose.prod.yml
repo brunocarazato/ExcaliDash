@@ -8,6 +8,9 @@ services:
       - PORT=8000
       - NODE_ENV=production
       - AUTH_MODE=${AUTH_MODE:-local}
+      # Restrict account creation to company email domains (comma-separated).
+      # Defaults to "*" (any domain); set e.g. digix.com.br to restrict.
+      - REGISTRATION_EMAIL_DOMAINS=${REGISTRATION_EMAIL_DOMAINS:-*}
       # Request path behind Coolify's Traefik:
       # client -> Traefik -> frontend nginx -> backend (two proxy hops).
       # Deploying without Traefik (direct access to the frontend container)?

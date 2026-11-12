@@ -269,6 +269,8 @@ export const getOidcErrorMessage = (errorCode: string): string => {
       return "Your account is inactive.";
     case "provisioning_disabled":
       return "No account found. Ask an admin to create your account or enable OIDC auto-provisioning.";
+    case "email_domain_not_allowed":
+      return "Your email domain is not allowed to create an account. Contact an administrator.";
     case "callback_failed":
       return "OIDC callback validation failed.";
     default:

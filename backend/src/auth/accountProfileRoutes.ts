@@ -3,6 +3,10 @@ import bcrypt from "bcrypt";
 import { logAuditEvent } from "../utils/audit";
 import { updateEmailSchema, updateProfileSchema } from "./schemas";
 import { canUseLocalPasswordFlows } from "./localPassword";
+import {
+  buildEmailDomainErrorMessage,
+  isEmailDomainAllowed,
+} from "./emailDomainPolicy";
 import { hashTokenForStorage } from "./tokenSecurity";
 import type { RegisterAccountRoutesDeps } from "./accountRoutes";
 
@@ -93,6 +97,13 @@ export const registerAccountProfileRoutes = (
         return res.status(400).json({
           error: "Validation error",
           message: "Invalid email update data",
+        });
+      }
+
+      if (!isEmailDomainAllowed(parsed.data.email, config.registrationEmailDomains)) {
+        return res.status(400).json({
+          error: "Validation error",
+          message: buildEmailDomainErrorMessage(config.registrationEmailDomains),
         });
       }
 
